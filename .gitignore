@@ -5,8 +5,9 @@ __pycache__/
 venv/
 .env
 
-# 输出文件
-output/
+# 输出文件（gitignore但不影响部署：index.html单独管理）
+output/*
+!output/.gitkeep
 
 # 配置文件（含API Key等敏感信息）
 config/settings.yaml
