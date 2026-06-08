@@ -1,0 +1,229 @@
+# 推流 — 信息源配置
+# 版本：v1.0 | 更新：2026-06-08
+
+# =============================================================================
+# RSS 源 (无需账号，解析稳定)
+# =============================================================================
+rss_sources:
+  - name: "36氪"
+    url: "https://36kr.com/feed"
+    category: "hot_industries"
+    enabled: true
+
+  - name: "华尔街见闻"
+    url: "https://api.wallstreetcn.com/apiv1/content/articles"
+    category: "hot_industries"
+    enabled: true
+    notes: "RSS子域名失效，改用API（已验证可用）"
+    method: "api"
+
+  - name: "量子位"
+    url: "https://www.qbitai.com/feed"
+    category: "science_tech"
+    enabled: true
+
+  - name: "机器之心"
+    url: "https://www.jiqizhixin.com"
+    category: "science_tech"
+    enabled: true
+    notes: "RSS失效返回HTML，需改用爬虫"
+    method: "scraper"
+
+  - name: "IEEE Spectrum"
+    url: "https://spectrum.ieee.org/rss"
+    category: "science_tech"
+    enabled: true
+
+  - name: "Nature - Latest Research"
+    url: "https://www.nature.com/nature.rss"
+    category: "science_tech"
+    enabled: true
+
+  - name: "Science - Latest"
+    url: "https://www.science.org/rss/news_current.xml"
+    category: "science_tech"
+    enabled: true
+
+  - name: "Cell - Latest"
+    url: "https://www.cell.com/cell/current.rss"
+    category: "science_tech"
+    enabled: true
+    notes: "需设置User-Agent才能正常获取"
+
+  - name: "PNAS - Latest"
+    url: "https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=pnas"
+    category: "science_tech"
+    enabled: true
+
+  - name: "MIT Technology Review"
+    url: "https://www.technologyreview.com/feed/"
+    category: "science_tech"
+    enabled: true
+
+  - name: "Federal Reserve - Press Releases"
+    url: "https://www.federalreserve.gov/feeds/press_all.xml"
+    category: "financial_policy"
+    enabled: true
+    notes: "原URL已失效，已更新为press_all.xml"
+
+  - name: "ECB - Press Releases"
+    url: "https://www.ecb.europa.eu/rss/fullpr.xml"
+    category: "financial_policy"
+    enabled: false
+    notes: "RSS全404，用户决定暂不纳入首期"
+
+# =============================================================================
+# API 源 (需注册获取 Key)
+# =============================================================================
+api_sources:
+  - name: "财联社"
+    base_url: "https://www.cls.cn/v1/roll/get_roll_list"
+    category: "hot_industries"
+    needs_key: false
+    enabled: true
+    notes: "SHA1-MD5签名访问，无需API Key。参数: app=CailianpressWeb&os=web&sv=8.4.6"
+    method: "api_with_sign"
+
+  - name: "arXiv"
+    base_url: "https://export.arxiv.org/api/query"
+    category: "science_tech"
+    needs_key: false
+    enabled: true
+    categories:
+      - "cs.AI"
+      - "q-bio"
+      - "cond-mat.mes-hall"
+      - "physics.app-ph"
+      - "q-fin"
+
+  - name: "FRED (Federal Reserve Economic Data)"
+    base_url: "https://api.stlouisfed.org/fred"
+    category: "financial_stats"
+    needs_key: true
+    enabled: false  # 待注册Key后启用
+
+  - name: "东方财富Choice"
+    base_url: "https://api.eastmoney.com"
+    category: "hot_industries"
+    needs_key: true
+    enabled: false  # 待注册Key后启用
+
+  - name: "Trading Economics"
+    base_url: "https://api.tradingeconomics.com"
+    category: "financial_stats"
+    needs_key: true
+    enabled: false  # 待注册Key后启用
+
+# =============================================================================
+# 爬虫源 (公开网站，需HTML解析)
+# =============================================================================
+scraper_sources:
+  - name: "国家统计局"
+    url: "https://www.stats.gov.cn"
+    category: "financial_stats"
+    enabled: true
+    pages:
+      - "/sj/zxfb/"  # 最新发布
+
+  - name: "中国人民银行"
+    url: "https://www.pbc.gov.cn"
+    category: "financial_policy"
+    enabled: false
+    notes: "HTTP 403反爬拦截，暂用财联社API+国务院政策库作为替代信源，Phase 1后续专项攻克"
+    pages:
+      - "/zhengcehuobisi/125207/125213/"
+      - "/diaochatongjisi/116219/"
+
+  - name: "国务院政策文件库"
+    url: "https://www.gov.cn/zhengce/zuixin.htm"
+    category: "industry_policy"
+    enabled: true
+
+  - name: "国家发改委"
+    url: "https://www.ndrc.gov.cn"
+    category: "industry_policy"
+    enabled: true
+
+  - name: "工信部"
+    url: "https://www.miit.gov.cn"
+    category: "industry_policy"
+    enabled: true
+
+  - name: "证监会 - 发行监管部"
+    url: "https://www.csrc.gov.cn/csrc/c100028/common_list.shtml"
+    category: "pre_ipo"
+    enabled: true
+
+  - name: "上交所 - 科创板审核"
+    url: "https://star.sse.com.cn"
+    category: "pre_ipo"
+    enabled: true
+
+  - name: "深交所 - 创业板审核"
+    url: "https://listing.szse.cn"
+    category: "pre_ipo"
+    enabled: true
+
+  - name: "北交所 - 审核"
+    url: "https://www.bse.cn"
+    category: "pre_ipo"
+    enabled: true
+
+  - name: "港交所披露易"
+    url: "https://www.hkexnews.hk"
+    category: "pre_ipo"
+    enabled: true
+
+  - name: "生意社"
+    url: "https://www.100ppi.com"
+    category: "supply_demand"
+    enabled: false
+    notes: "疑似JS动态渲染（仅636字符），需Playwright/headless方案，Phase 1后续专项攻克"
+
+  - name: "创杂志"
+    url: "https://www.qstheory.cn"
+    category: "industry_policy"
+    enabled: true
+
+  - name: "上海期货交易所"
+    url: "https://www.shfe.com.cn"
+    category: "supply_demand"
+    enabled: true
+
+  - name: "大连商品交易所"
+    url: "https://www.dce.com.cn"
+    category: "supply_demand"
+    enabled: true
+
+  - name: "郑州商品交易所"
+    url: "https://www.czce.com.cn"
+    category: "supply_demand"
+    enabled: true
+
+  - name: "海关总署"
+    url: "https://www.customs.gov.cn"
+    category: "financial_stats"
+    enabled: true
+
+  - name: "国家外汇管理局"
+    url: "https://www.safe.gov.cn"
+    category: "financial_policy"
+    enabled: true
+
+  - name: "银保监会（国家金融监督管理总局）"
+    url: "https://www.nfra.gov.cn"
+    category: "financial_policy"
+    enabled: false
+    notes: "疑似JS动态渲染（仅215字符），需Playwright方案，Phase 1后续专项攻克"
+
+
+# 待后续接入（Phase 6 迭代）
+future_sources:
+  - name: "Wind资讯"
+    reason: "机构付费，暂缓"
+  - name: "集邦咨询 TrendForce"
+    reason: "反爬措施较强，Phase 1 之后专项攻克"
+  - name: "中国船舶工业行业协会"
+    reason: "更新频率低，非高优先级"
+  - name: "艾瑞咨询"
+    reason: "定期报告非实时，纳入迭代"

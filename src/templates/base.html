@@ -1,0 +1,170 @@
+{# -*- coding: utf-8 -*-
+推流 — HTML 日报基础模板 (Jinja2)
+变量：
+  report    — 完整报告数据
+  date_str  — 日期字符串 "2026年6月8日"
+  weekday   — 星期 "星期一"
+  overview  — 今日概览文本
+  sections  — {section_id: [items]} 字典
+  source_status — {source_name: status} 信源状态
+#}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>推流 · {{ date_str }}</title>
+<style>
+{% include "assets/style.css" %}
+</style>
+</head>
+<body>
+
+{# === 报头 === #}
+<header class="header">
+    <div class="header-masthead">推 流</div>
+    <div class="header-date">{{ date_str }} · {{ weekday }}</div>
+    <div class="header-subtitle">Daily Brief — 个人高价值资讯内参</div>
+</header>
+
+{# === 信源状态条 === #}
+<div class="source-bar">
+    {% for name, status in source_status.items() %}
+        {% if status == 'ok' %}
+        <span class="source-tag ok"><span class="dot"></span>{{ name }}</span>
+        {% elif status == 'degraded' %}
+        <span class="source-tag warn"><span class="dot"></span>{{ name }}</span>
+        {% elif status == 'failed' %}
+        <span class="source-tag fail"><span class="dot"></span>{{ name }}</span>
+        {% endif %}
+    {% endfor %}
+</div>
+
+{# === 今日概览 === #}
+<div class="overview">
+    <div class="overview-label">今日概览</div>
+    <div class="overview-text">{{ overview }}</div>
+</div>
+
+{# === 各版块 === #}
+{% for section_id, config in sections_config.items() %}
+    {% set items = sections.get(section_id, []) %}
+    <section class="section">
+        <div class="section-header">
+            <div class="section-accent" style="background: {{ config.color }}"></div>
+            <h2 class="section-title">{{ config.name }}</h2>
+            <span class="section-count">{{ items|length }}条</span>
+        </div>
+
+        {% if items|length == 0 %}
+            <div class="empty-section">今日暂无该版块资讯</div>
+        {% endif %}
+
+        {% for item in items %}
+        <article class="item">
+            <h3 class="item-title">{{ item.title }}</h3>
+            <div class="item-meta">
+                <span class="item-source">{{ item.sources|join(' · ') }}</span>
+                {% if item.reliability_icon %}
+                <span class="item-reliability
+                    {%- if item.reliability == '多源验证' -%}verified
+                    {%- elif item.reliability == '交叉验证' -%}partial
+                    {%- else -%}unverified{%- endif -%}">
+                    {{ item.reliability_icon }} {{ item.reliability }}
+                </span>
+                {% endif %}
+                {% if item.warning %}
+                <span style="color: var(--accent); font-size: 12px;">{{ item.warning }}</span>
+                {% endif %}
+            </div>
+            <div class="item-content">
+                {% if item.content %}
+                <p>{{ item.content }}</p>
+                {% endif %}
+                {% if item.description and item.description != item.content %}
+                <p>{{ item.description }}</p>
+                {% endif %}
+            </div>
+            {% if item.original_quote %}
+            <blockquote>{{ item.original_quote }}</blockquote>
+            {% endif %}
+
+            {# === AI 分析 === #}
+            {% if item.ai_analysis %}
+            <div class="ai-analysis">
+                <div class="ai-analysis-header">
+                    智能分析 <span class="ai-badge">AI</span>
+                </div>
+                <div class="ai-analysis-grid">
+                    <div class="ai-analysis-col">
+                        <div class="ai-analysis-label">● 背后意义</div>
+                        <div class="ai-analysis-text">{{ item.ai_analysis.significance }}</div>
+                    </div>
+                    <div class="ai-analysis-col">
+                        <div class="ai-analysis-label">● 产业链机会</div>
+                        <div class="ai-analysis-text">{{ item.ai_analysis.opportunity }}</div>
+                    </div>
+                    <div class="ai-analysis-col">
+                        <div class="ai-analysis-label">● 后续影响</div>
+                        <div class="ai-analysis-text">{{ item.ai_analysis.impact }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </section>
+{% endfor %}
+
+{# === 每日寓言 === #}
+{% if allegory %}
+<section class="allegory">
+    <div class="section-header">
+        <div class="section-accent" style="background: var(--color-allegory)"></div>
+        <h2 class="section-title">每日寓言</h2>
+    </div>
+
+    <div class="allegory-story">
+        {% for para in allegory.story_paragraphs %}
+        <p>{{ para }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="allegory-divider">· · ·</div>
+
+    <div class="allegory-reveal">
+        <div class="allegory-concept">{{ allegory.concept }}</div>
+        <div class="allegory-explanation">
+            {% for para in allegory.explanation_paragraphs %}
+            <p>{{ para }}</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{# === 底部信源状态 === #}
+<footer class="footer">
+    <div class="footer-section">
+        <div class="footer-label">信源状态明细</div>
+        <ul class="source-status-list">
+            {% for name, status in source_status.items()|sort %}
+            <li>
+                {% if status == 'ok' %}✅
+                {% elif status == 'degraded' %}⚠️
+                {% elif status == 'failed' %}❌
+                {% elif status == 'no_update' %}📭
+                {% else %}❓{% endif %}
+                {{ name }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="footer-section" style="margin-top: 16px; color: var(--text-secondary);">
+        生成时间：{{ generation_time }} · 推流 v1.0
+    </div>
+</footer>
+
+</body>
+</html>
