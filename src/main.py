@@ -13,12 +13,17 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from processors.pipeline import ProcessingPipeline
 from ai_generator import AIGenerator
 from deploy.deploy import ReportDeployer
+from ai_backfill import extract_analysis_jobs, save_jobs, create_filled_template
+from collectors.collector import RSSCollector, fetch_arxiv, fetch_cls_telegraph
 
 # 项目根目录
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(PROJECT_ROOT, '..', 'config')
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, '..', 'output')
+
+# GitHub Pages 公网URL
+PUBLIC_URL = 'https://aarontanbolin-lab.github.io/tuiliu/'
 
 # Jinja2 环境
 jinja_env = Environment(
@@ -45,16 +50,35 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def collect_raw_data(config: dict) -> list:
+def collect_raw_data(config: dict) -> tuple:
     """
-    从所有信源采集原始数据。
-    Phase 1 已验证的信源：RSS + API + 爬虫。
-    当前返回测试数据，实际运行时替换为真实采集。
+    从所有已验证信源采集原始数据。
+    返回 (items_list, source_status_dict)
     """
-    # TODO: Phase 5 集成真实采集
-    # 对于当前端到端测试，返回空列表
-    # 实际运行时将调用 collectors/ 下的采集模块
-    return []
+    all_items = []
+    source_status = {}
+
+    # 1. RSS采集
+    print('  [采集] RSS源...')
+    rss = RSSCollector()
+    rss_items = rss.fetch_all()
+    all_items.extend(rss_items)
+    source_status.update(rss.get_status())
+
+    # 2. arXiv论文
+    print('  [采集] arXiv...')
+    arxiv_items = fetch_arxiv(max_results=5)
+    all_items.extend(arxiv_items)
+    source_status['arXiv'] = 'ok' if arxiv_items else 'failed'
+
+    # 3. 财联社电报
+    print('  [采集] 财联社电报...')
+    cls_items = fetch_cls_telegraph(max_items=20)
+    all_items.extend(cls_items)
+    source_status['财联社'] = 'ok' if cls_items else 'failed'
+
+    print(f'  [采集] 共计 {len(all_items)} 条原始条目')
+    return all_items, source_status
 
 
 def get_source_status(config: dict) -> dict:
@@ -89,7 +113,7 @@ def run_daily_report():
     print(f"\n[1/5] 配置加载完成")
 
     # 2. 采集数据
-    raw_items = collect_raw_data(config)
+    raw_items, collection_status = collect_raw_data(config)
     print(f"[2/5] 数据采集: {len(raw_items)} 条原始条目")
     if not raw_items:
         print("  ⚠ 采集结果为空，生成空报告框架")
@@ -122,7 +146,7 @@ def run_daily_report():
     date_str = now.strftime("%Y年%m月%d日")
     weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
 
-    source_status = get_source_status(config)
+    source_status = collection_status  # 使用真实采集状态
 
     template = jinja_env.get_template('base.html')
     html = template.render(
@@ -136,6 +160,22 @@ def run_daily_report():
         generation_time=now.strftime("%Y-%m-%d %H:%M:%S"),
     )
     print(f"[5/5] 报告渲染完成 ({len(html)} 字符)")
+
+    # 5.5 提取AI分析任务（供自动化WorkBuddy AI填充）
+    analysis_jobs = extract_analysis_jobs(sections)
+    save_jobs(analysis_jobs)
+    create_filled_template()
+
+    # 5.6 序列化状态供AI回填步骤使用
+    import pickle
+    state_path = os.path.join(OUTPUT_DIR, 'latest.pkl')
+    with open(state_path, 'wb') as f:
+        pickle.dump({
+            'sections': sections,
+            'allegory': allegory,
+            'overview': overview,
+            'source_status': source_status,
+        }, f)
 
     # 6. 输出
     date_dir = now.strftime("%Y-%m-%d")
@@ -176,6 +216,7 @@ def run_daily_report():
             'summary': first_line,
             'allegory_hint': allegory_hint,
         },
+        cloud_url=PUBLIC_URL,
     )
     print(f"[7/7] 部署推送完成: {'✅' if deploy_result.get('pushed') else '⚠️ 跳过'}")
 
