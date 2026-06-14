@@ -6,6 +6,7 @@
 import feedparser
 import httpx
 import time
+import html
 from typing import List, Dict
 
 
@@ -42,6 +43,7 @@ class RSSCollector:
         # 去除HTML标签（保留纯文本）
         import re
         content = re.sub(r'<[^>]+>', '', content)
+        content = html.unescape(content)  # 解码 &nbsp; 等HTML实体
         content = content.strip()[:1000]  # 截取前1000字
 
         return {
@@ -108,6 +110,7 @@ def fetch_arxiv(categories: List[str] = None, max_results: int = 10) -> List[Dic
                 # 提取摘要（去除HTML）
                 import re
                 summary = re.sub(r'<[^>]+>', '', getattr(entry, 'summary', ''))
+                summary = html.unescape(summary)  # 解码 HTML 实体
                 summary = summary.strip()[:800]
 
                 all_items.append({
@@ -169,6 +172,7 @@ def fetch_cls_telegraph(max_items: int = 30) -> List[Dict]:
             # 识别类别
             category = 'hot_industries'  # 默认
             level = item.get('level', 'C')
+            ctime = item.get('ctime', 0)
             if level == 'A':
                 # A级快讯通常是重要政策或宏观消息
                 title_lower = (title + content).lower()
@@ -181,7 +185,7 @@ def fetch_cls_telegraph(max_items: int = 30) -> List[Dict]:
                 'content': content[:500],
                 'source': '财联社',
                 'category': category,
-                'published': time.strftime('%Y-%m-%d', time.localtime(item.get('ctime', 0))),
+                'published': time.strftime('%Y-%m-%d', time.localtime(ctime if ctime > 0 else time.time())),
                 'level': level,
             })
 

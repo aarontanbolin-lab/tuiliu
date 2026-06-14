@@ -8,6 +8,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from processors.pipeline import ProcessingPipeline
@@ -110,13 +111,27 @@ def run_daily_report():
 
     # 1. 加载配置
     config = load_config()
-    print(f"\n[1/5] 配置加载完成")
+    tz_name = config.get('report', {}).get('timezone', 'Asia/Shanghai')
+    tz = ZoneInfo(tz_name)
+    today_dt = datetime.now(tz)
+    today_stamp = today_dt.strftime("%Y-%m-%d")  # 全局唯一的"今日日期"
+    print(f"\n[1/5] 配置加载完成 (时区:{tz_name}, 日期:{today_stamp})")
 
     # 2. 采集数据
     raw_items, collection_status = collect_raw_data(config)
     print(f"[2/5] 数据采集: {len(raw_items)} 条原始条目")
     if not raw_items:
         print("  ⚠ 采集结果为空，生成空报告框架")
+
+    # 2.5 数据新鲜度检查
+    stale_count = 0
+    for item in raw_items:
+        pub = item.get('published', '')
+        if pub and pub != today_stamp and pub != datetime.fromtimestamp(0).strftime("%Y-%m-%d"):
+            stale_count += 1
+    if stale_count > 0:
+        stale_pct = stale_count / len(raw_items) * 100 if raw_items else 0
+        print(f"  ⚠ 数据新鲜度: {stale_count}/{len(raw_items)} 条非当日数据 ({stale_pct:.0f}%)")
 
     # 3. 处理管线
     pipeline = ProcessingPipeline()
@@ -142,22 +157,24 @@ def run_daily_report():
     print(f"  今日寓言: {allegory['concept']}")
 
     # 5. 模板渲染
-    now = datetime.now()
-    date_str = now.strftime("%Y年%m月%d日")
+    date_str = today_dt.strftime("%Y年%m月%d日")
     weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+    weekday = weekdays[today_dt.weekday()]
+    generation_time = today_dt.strftime("%Y-%m-%d %H:%M:%S")
 
     source_status = collection_status  # 使用真实采集状态
 
     template = jinja_env.get_template('base.html')
     html = template.render(
         date_str=date_str,
-        weekday=weekdays[now.weekday()],
+        weekday=weekday,
         overview=overview,
         sections=sections,
         sections_config=SECTIONS_CONFIG,
         allegory=allegory,
         source_status=source_status,
-        generation_time=now.strftime("%Y-%m-%d %H:%M:%S"),
+        generation_time=generation_time,
+        total_items=summary['total_items'],
     )
     print(f"[5/5] 报告渲染完成 ({len(html)} 字符)")
 
@@ -175,10 +192,11 @@ def run_daily_report():
             'allegory': allegory,
             'overview': overview,
             'source_status': source_status,
+            'today_stamp': today_stamp,   # 回填时复用同一个日期
         }, f)
 
     # 6. 输出
-    date_dir = now.strftime("%Y-%m-%d")
+    date_dir = today_stamp
     output_dir = os.path.join(OUTPUT_DIR, date_dir)
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, 'index.html')
@@ -211,7 +229,7 @@ def run_daily_report():
     deploy_result = deployer.deploy(
         html_path=output_path,
         report_info={
-            'title': f"推流 · {date_str} {weekdays[now.weekday()]}",
+            'title': f"推流 · {date_str} {weekday}",
             'items_count': total_items,
             'summary': first_line,
             'allegory_hint': allegory_hint,

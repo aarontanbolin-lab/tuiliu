@@ -21,6 +21,49 @@
 </head>
 <body>
 
+{# === 目录侧边栏 === #}
+<button class="toc-toggle" id="toc-toggle" aria-label="目录">☰</button>
+<nav class="toc-sidebar" id="toc-sidebar">
+    <div class="toc-header">
+        <span class="toc-header-title">目录</span>
+        <span class="toc-header-count">{{ total_items }}条</span>
+    </div>
+    <ul class="toc-list" id="toc-list">
+        <li class="toc-item toc-overview">
+            <a href="#overview" class="toc-link">今日概览</a>
+        </li>
+        {% for section_id, config in sections_config.items() %}
+        {% set items = sections.get(section_id, []) %}
+        <li class="toc-item toc-section">
+            <a href="#section-{{ section_id }}" class="toc-link toc-section-link" data-section="{{ section_id }}">
+                <span class="toc-accent" style="background:{{ config.color }}"></span>
+                <span class="toc-section-name">{{ config.name }}</span>
+                <span class="toc-section-num">{{ items|length }}</span>
+            </a>
+            {% if items|length > 0 %}
+            <ul class="toc-sub" id="toc-sub-{{ section_id }}">
+                {% for item in items %}
+                <li class="toc-sub-item">
+                    <a href="#item-{{ section_id }}-{{ loop.index0 }}" class="toc-sub-link" title="{{ item.title }}">
+                        {{ item.title[:30] }}{% if item.title|length > 30 %}…{% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </li>
+        {% endfor %}
+        {% if allegory %}
+        <li class="toc-item toc-overview">
+            <a href="#allegory" class="toc-link">每日寓言</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
+{# === 主内容区 === #}
+<main class="main-content" id="main-content">
+
 {# === 报头 === #}
 <header class="header">
     <div class="header-masthead">推 流</div>
@@ -42,7 +85,7 @@
 </div>
 
 {# === 今日概览 === #}
-<div class="overview">
+<div class="overview" id="overview">
     <div class="overview-label">今日概览</div>
     <div class="overview-text">{{ overview }}</div>
 </div>
@@ -50,7 +93,7 @@
 {# === 各版块 === #}
 {% for section_id, config in sections_config.items() %}
     {% set items = sections.get(section_id, []) %}
-    <section class="section">
+    <section class="section" id="section-{{ section_id }}">
         <div class="section-header">
             <div class="section-accent" style="background: {{ config.color }}"></div>
             <h2 class="section-title">{{ config.name }}</h2>
@@ -62,7 +105,7 @@
         {% endif %}
 
         {% for item in items %}
-        <article class="item">
+        <article class="item" id="item-{{ section_id }}-{{ loop.index0 }}">
             <h3 class="item-title">{{ item.title }}</h3>
             <div class="item-meta">
                 <span class="item-source">{{ item.sources|join(' · ') }}</span>
@@ -119,7 +162,7 @@
 
 {# === 每日寓言 === #}
 {% if allegory %}
-<section class="allegory">
+<section class="allegory" id="allegory">
     <div class="section-header">
         <div class="section-accent" style="background: var(--color-allegory)"></div>
         <h2 class="section-title">每日寓言</h2>
@@ -165,6 +208,93 @@
         生成时间：{{ generation_time }} · 推流 v1.0
     </div>
 </footer>
+
+</main>
+
+{# === 目录交互脚本 === #}
+<script>
+(function(){
+    var sidebar = document.getElementById('toc-sidebar');
+    var toggle = document.getElementById('toc-toggle');
+    var tocLinks = sidebar.querySelectorAll('.toc-link');
+    var sectionLinks = sidebar.querySelectorAll('.toc-section-link');
+
+    // 移动端切换目录
+    toggle.addEventListener('click', function(){
+        sidebar.classList.toggle('open');
+    });
+
+    // 点击目录外区域收起（移动端）
+    document.addEventListener('click', function(e){
+        if (!sidebar.contains(e.target) && e.target !== toggle) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    // 点击目录链接跳转并关闭（移动端）
+    tocLinks.forEach(function(link){
+        link.addEventListener('click', function(){
+            if (window.innerWidth < 1024) {
+                sidebar.classList.remove('open');
+            }
+        });
+    });
+
+    // 滚动时高亮当前版块
+    var sectionIds = [];
+    sectionLinks.forEach(function(link){
+        sectionIds.push(link.getAttribute('data-section'));
+    });
+
+    function updateActive(){
+        var scrollY = window.scrollY + 120;
+        var activeSection = null;
+
+        sectionIds.forEach(function(sid){
+            var el = document.getElementById('section-' + sid);
+            if (el && el.offsetTop <= scrollY) {
+                activeSection = sid;
+            }
+        });
+
+        // 更新目录高亮
+        sectionLinks.forEach(function(link){
+            var parent = link.parentElement;
+            if (link.getAttribute('data-section') === activeSection) {
+                link.classList.add('active');
+                parent.classList.add('active');
+            } else {
+                link.classList.remove('active');
+                parent.classList.remove('active');
+            }
+        });
+
+        // 当前版块下的文章高亮
+        if (activeSection) {
+            var subItems = sidebar.querySelectorAll('#toc-sub-' + activeSection + ' .toc-sub-link');
+            subItems.forEach(function(sl){ sl.classList.remove('active-sub'); });
+            var itemEls = document.querySelectorAll('#section-' + activeSection + ' .item');
+            var found = false;
+            itemEls.forEach(function(itemEl){
+                if (!found && itemEl.offsetTop <= scrollY + 200) {
+                    var subLink = sidebar.querySelector('a[href="#' + itemEl.id + '"]');
+                    if (subLink) {
+                        subLink.classList.add('active-sub');
+                        found = true;
+                    }
+                }
+            });
+        }
+    }
+
+    window.addEventListener('scroll', updateActive);
+    updateActive();
+
+    // 目录子项默认展开
+    var subLists = sidebar.querySelectorAll('.toc-sub');
+    subLists.forEach(function(sub){ sub.classList.add('expanded'); });
+})();
+</script>
 
 </body>
 </html>

@@ -41,6 +41,9 @@
     /* 布局 */
     --content-width: 800px;
     --page-padding:  16px;
+    --sidebar-width:  260px;
+    --sidebar-bg:     #F8F5F0;
+    --sidebar-active: #EDE8E0;
 }
 
 /* === 响应式: 桌面端 === */
@@ -71,6 +74,8 @@ body {
     max-width: var(--content-width);
     margin: 0 auto;
 }
+
+html { scroll-behavior: smooth; }
 
 /* === Typography === */
 h1, h2, h3 { font-family: var(--font-sans); line-height: var(--lh-heading); font-weight: 700; }
@@ -498,4 +503,181 @@ hr {
 @media print {
     body { background: #fff; max-width: 100%; }
     .header { border-bottom-color: #000; }
+    .toc-sidebar, .toc-toggle { display: none !important; }
+}
+
+/* =============================================================================
+ * 目录侧边栏 (v1.1)
+ * ============================================================================= */
+
+/* 移动端：目录开关按钮 */
+.toc-toggle {
+    display: block;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--section-sep);
+    border-radius: 8px;
+    background: var(--card-bg);
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-primary);
+    box-shadow: var(--card-shadow);
+}
+@media (min-width: 1024px) {
+    .toc-toggle { display: none; }
+}
+
+/* 侧边栏基础 */
+.toc-sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--section-sep);
+    z-index: 999;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 16px 100px;
+    font-family: var(--font-sans);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+}
+
+/* 展开状态 */
+.toc-sidebar.open {
+    transform: translateX(0);
+}
+
+@media (min-width: 1024px) {
+    .toc-sidebar {
+        transform: translateX(0);
+    }
+}
+
+/* 目录标题 */
+.toc-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--section-sep);
+}
+.toc-header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.toc-header-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* 目录列表 */
+.toc-list { list-style: none; padding: 0; }
+
+/* 目录条目 */
+.toc-item { margin-bottom: 2px; }
+.toc-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+}
+.toc-link:hover {
+    background: var(--sidebar-active);
+    color: var(--text-primary);
+}
+.toc-link.active {
+    background: var(--sidebar-active);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* 版块链接样式 */
+.toc-section-link {
+    font-weight: 500;
+    font-size: 13px;
+}
+.toc-accent {
+    width: 3px;
+    height: 14px;
+    border-radius: 1px;
+    flex-shrink: 0;
+}
+.toc-section-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toc-section-num {
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+/* 概览/寓言条目 */
+.toc-overview .toc-link {
+    font-size: 13px;
+    padding-left: 12px;
+}
+
+/* 子目录（版块下文章） */
+.toc-sub {
+    list-style: none;
+    padding-left: 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.toc-sub.expanded {
+    max-height: 9999px;
+}
+.toc-sub-item { }
+.toc-sub-link {
+    display: block;
+    padding: 3px 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.12s;
+}
+.toc-sub-link:hover {
+    background: var(--sidebar-active);
+    color: var(--text-primary);
+}
+.toc-sub-link.active-sub {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* 桌面端：主内容区偏移 */
+@media (min-width: 1024px) {
+    body {
+        margin-left: var(--sidebar-width);
+        max-width: calc(var(--content-width) + var(--sidebar-width));
+    }
+    .main-content {
+        max-width: var(--content-width);
+        margin: 0 auto;
+    }
+}
+
+/* 滚动条美化 */
+.toc-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+.toc-sidebar::-webkit-scrollbar-thumb {
+    background: var(--section-sep);
+    border-radius: 2px;
 }

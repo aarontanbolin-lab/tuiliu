@@ -104,9 +104,15 @@ def apply_analysis(sections: dict, filled_jobs: list) -> dict:
     return sections
 
 
-def render_report(sections: dict, allegory: dict, overview: str, source_status: dict) -> str:
-    """使用回填后的数据重新渲染HTML报告"""
-    now = datetime.now()
+def render_report(sections: dict, allegory: dict, overview: str, source_status: dict, today_stamp: str = None) -> str:
+    """使用回填后的数据重新渲染HTML报告。today_stamp 若不传则取当日。"""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    if today_stamp:
+        # 从 today_stamp 还原 datetime（取当天0点）
+        now = datetime.strptime(today_stamp, "%Y-%m-%d")
+    else:
+        now = datetime.now(ZoneInfo("Asia/Shanghai"))
     template = jinja_env.get_template('base.html')
     weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
 
@@ -119,10 +125,11 @@ def render_report(sections: dict, allegory: dict, overview: str, source_status: 
         allegory=allegory,
         source_status=source_status,
         generation_time=now.strftime("%Y-%m-%d %H:%M:%S"),
+        total_items=sum(len(v) for v in sections.values()),
     )
 
     # 更新输出文件
-    date_dir = now.strftime("%Y-%m-%d")
+    date_dir = today_stamp if today_stamp else now.strftime("%Y-%m-%d")
     output_dir = os.path.join(OUTPUT_DIR, date_dir)
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, 'index.html')
