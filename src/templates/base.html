@@ -66,17 +66,19 @@
 {% for section_id, config in sections_config.items() %}
 {% set items = sections.get(section_id, []) %}
 {% if items|length > 0 %}
+{% set featured_items = items|selectattr('_featured', 'equalto', true)|list %}
+{% set collapsed_items = items|selectattr('_featured', 'equalto', false)|list %}
 <section class="sec" id="sec-{{ section_id }}">
     <div class="sec-head">
         <span class="sec-bar" style="background:{{ config.color }}"></span>
         <h2 class="sec-title">{{ config.name }}</h2>
-        <span class="sec-count">{{ items|length }}条</span>
+        <span class="sec-count">{{ featured_items|length }}+{{ collapsed_items|length }}条</span>
     </div>
 
-    {% for item in items %}
+    {# 精选（展开） #}
+    {% for item in featured_items %}
     <article class="card">
         <h3 class="card-title">{{ item.title }}</h3>
-
         <div class="card-meta">
             <span class="card-source">{{ item.sources|join(' · ') }}</span>
             {% if item.reliability == '多源验证' %}
@@ -85,47 +87,64 @@
             {% if item.published %}
             <span class="card-date">{{ item.published }}</span>
             {% endif %}
-            {% if item.target_board %}
-            <span class="card-board">{{ item.target_board }}</span>
-            {% endif %}
-            {% if item.ipo_date %}
-            <span class="card-board">📅 {{ item.ipo_date }}</span>
-            {% endif %}
-            {% if item.ipo_price %}
-            <span class="card-board">💰 {{ item.ipo_price }}</span>
-            {% endif %}
-            {% if item.stock_code %}
-            <span class="card-board">🔢 {{ item.stock_code }}</span>
-            {% endif %}
+            {% if item.target_board %}<span class="card-board">{{ item.target_board }}</span>{% endif %}
+            {% if item.ipo_date %}<span class="card-board">📅 {{ item.ipo_date }}</span>{% endif %}
+            {% if item.ipo_price %}<span class="card-board">💰 {{ item.ipo_price }}</span>{% endif %}
+            {% if item.stock_code %}<span class="card-board">🔢 {{ item.stock_code }}</span>{% endif %}
         </div>
-
         <div class="card-body">
-            {% if item.content %}
-            <p>{{ item.content[:300] }}{% if item.content|length > 300 %}…{% endif %}</p>
-            {% endif %}
+            {% if item.content %}<p>{{ item.content[:300] }}{% if item.content|length > 300 %}…{% endif %}</p>{% endif %}
         </div>
-
         {% if item.ai_analysis %}
         <div class="ai-box">
             <div class="ai-label">AI 分析</div>
             <div class="ai-cols">
-                <div class="ai-col">
-                    <span class="ai-tag">意义</span>
-                    <p>{{ item.ai_analysis.significance }}</p>
-                </div>
-                <div class="ai-col">
-                    <span class="ai-tag">机会</span>
-                    <p>{{ item.ai_analysis.opportunity }}</p>
-                </div>
-                <div class="ai-col">
-                    <span class="ai-tag">影响</span>
-                    <p>{{ item.ai_analysis.impact }}</p>
-                </div>
+                <div class="ai-col"><span class="ai-tag">意义</span><p>{{ item.ai_analysis.significance }}</p></div>
+                <div class="ai-col"><span class="ai-tag">机会</span><p>{{ item.ai_analysis.opportunity }}</p></div>
+                <div class="ai-col"><span class="ai-tag">影响</span><p>{{ item.ai_analysis.impact }}</p></div>
             </div>
         </div>
         {% endif %}
     </article>
     {% endfor %}
+
+    {# 折叠区 #}
+    {% if collapsed_items|length > 0 %}
+    <button class="expand-btn" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        展开更多 <span class="expand-count">{{ collapsed_items|length }}条</span>
+    </button>
+    <div class="collapsed-items">
+        {% for item in collapsed_items %}
+        <article class="card">
+            <h3 class="card-title">{{ item.title }}</h3>
+            <div class="card-meta">
+                <span class="card-source">{{ item.sources|join(' · ') }}</span>
+                {% if item.reliability == '多源验证' %}
+                <span class="card-verified">✓ 多源验证</span>
+                {% endif %}
+                {% if item.published %}<span class="card-date">{{ item.published }}</span>{% endif %}
+                {% if item.target_board %}<span class="card-board">{{ item.target_board }}</span>{% endif %}
+                {% if item.ipo_date %}<span class="card-board">📅 {{ item.ipo_date }}</span>{% endif %}
+                {% if item.ipo_price %}<span class="card-board">💰 {{ item.ipo_price }}</span>{% endif %}
+                {% if item.stock_code %}<span class="card-board">🔢 {{ item.stock_code }}</span>{% endif %}
+            </div>
+            <div class="card-body">
+                {% if item.content %}<p>{{ item.content[:300] }}{% if item.content|length > 300 %}…{% endif %}</p>{% endif %}
+            </div>
+            {% if item.ai_analysis %}
+            <div class="ai-box">
+                <div class="ai-label">AI 分析</div>
+                <div class="ai-cols">
+                    <div class="ai-col"><span class="ai-tag">意义</span><p>{{ item.ai_analysis.significance }}</p></div>
+                    <div class="ai-col"><span class="ai-tag">机会</span><p>{{ item.ai_analysis.opportunity }}</p></div>
+                    <div class="ai-col"><span class="ai-tag">影响</span><p>{{ item.ai_analysis.impact }}</p></div>
+                </div>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
 </section>
 {% endif %}
 {% endfor %}

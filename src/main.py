@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from processors.pipeline import ProcessingPipeline
+from processors.editor import rank_sections, count_featured
 from ai_generator import AIGenerator
 from deploy.deploy import ReportDeployer
 from ai_backfill import extract_analysis_jobs, save_jobs, create_filled_template
@@ -134,6 +135,11 @@ def run_daily_report():
     print(f"[3/5] 数据处理完成")
     print(f"  去重:{summary['raw_count']}→{summary['deduplicated_count']} "
           f"| 交叉验证率:{summary['verification_rate']}")
+
+    # 3.5 编辑精选：排序+标记
+    sections = rank_sections(sections)
+    featured = count_featured(sections)
+    print(f"  编辑精选: {featured}/{summary['total_items']} 条展开, 其余折叠")
 
     # 4. AI分析
     ai_gen = AIGenerator()
