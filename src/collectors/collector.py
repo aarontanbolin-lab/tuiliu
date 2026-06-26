@@ -10,16 +10,14 @@ import html
 from typing import List, Dict
 
 
-# Phase 1 验证通过的RSS源
+# Phase 2 信源（v2.0 — 全中文财经政策源）
 RSS_SOURCES = [
-    {'name': '36氪', 'url': 'https://36kr.com/feed', 'category': 'hot_industries'},
-    {'name': '量子位', 'url': 'https://www.qbitai.com/feed', 'category': 'science_tech'},
-    {'name': 'IEEE Spectrum', 'url': 'https://spectrum.ieee.org/rss', 'category': 'science_tech'},
-    {'name': 'Nature', 'url': 'https://www.nature.com/nature.rss', 'category': 'science_tech'},
-    {'name': 'Science', 'url': 'https://www.science.org/rss/news_current.xml', 'category': 'science_tech'},
-    {'name': 'PNAS', 'url': 'https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=pnas', 'category': 'science_tech'},
-    {'name': 'MIT Technology Review', 'url': 'https://www.technologyreview.com/feed/', 'category': 'science_tech'},
-    {'name': 'Federal Reserve', 'url': 'https://www.federalreserve.gov/feeds/press_all.xml', 'category': 'financial_policy'},
+    # 中文财经
+    {'name': '36氪', 'url': 'https://36kr.com/feed', 'category': 'industry'},
+    # 中文科技
+    {'name': '量子位', 'url': 'https://www.qbitai.com/feed', 'category': 'industry'},
+    # 国际政策（翻译摘要，不做原文输出）
+    {'name': 'Federal Reserve', 'url': 'https://www.federalreserve.gov/feeds/press_all.xml', 'category': 'global'},
 ]
 
 

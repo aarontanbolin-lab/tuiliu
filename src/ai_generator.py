@@ -186,10 +186,9 @@ class AIGenerator:
         # 统计各版块头条
         headlines = []
         section_names = {
-            'hot_industries': '市场热点', 'supply_demand': '供需变化',
-            'science_tech': '科学前沿', 'industry_policy': '行业政策',
-            'financial_policy': '金融政策', 'financial_stats': '金融数据',
-            'pre_ipo': '准IPO',
+            'top_story': '今日焦点', 'policy': '政策风向',
+            'finance': '金融脉搏', 'industry': '产业前沿',
+            'global': '全球视野', 'ipo': '准IPO',
         }
         for section_id, items in sections.items():
             if items:

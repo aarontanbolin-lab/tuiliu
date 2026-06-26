@@ -13,13 +13,12 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, '..', 'output')
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, 'templates')
 
 SECTIONS_CONFIG = {
-    'hot_industries':    {'name': '一、市场最热门行业',    'color': '#C41E3A'},
-    'supply_demand':     {'name': '二、供需关系变化',      'color': '#B7950B'},
-    'science_tech':      {'name': '三、前沿科学与技术突破',  'color': '#1E8449'},
-    'industry_policy':   {'name': '四、行业政策变动',      'color': '#6C3483'},
-    'financial_policy':  {'name': '五、金融政策变动',      'color': '#1A5276'},
-    'financial_stats':   {'name': '六、金融统计数据变动',   'color': '#1A5276'},
-    'pre_ipo':           {'name': '七、准IPO企业追踪',     'color': '#D35400'},
+    'top_story':    {'name': '今日焦点',          'color': '#C41E3A'},
+    'policy':       {'name': '政策风向',          'color': '#6C3483'},
+    'finance':      {'name': '金融脉搏',          'color': '#1A5276'},
+    'industry':     {'name': '产业前沿',          'color': '#B7950B'},
+    'global':       {'name': '全球视野',          'color': '#1E8449'},
+    'ipo':          {'name': '准IPO & 打新',      'color': '#D35400'},
 }
 
 jinja_env = Environment(

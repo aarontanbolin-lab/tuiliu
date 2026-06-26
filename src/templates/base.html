@@ -1,12 +1,6 @@
 {# -*- coding: utf-8 -*-
-推流 — HTML 日报基础模板 (Jinja2)
-变量：
-  report    — 完整报告数据
-  date_str  — 日期字符串 "2026年6月8日"
-  weekday   — 星期 "星期一"
-  overview  — 今日概览文本
-  sections  — {section_id: [items]} 字典
-  source_status — {source_name: status} 信源状态
+推流 v2.0 — HTML 日报模板 (Jinja2)
+杂志式内参风格：封面故事 + 版块导读 + 编辑按语
 #}
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -15,284 +9,177 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
 <title>推流 · {{ date_str }}</title>
-<style>
-{% include "assets/style.css" %}
-</style>
+<style>{% include "assets/style.css" %}</style>
 </head>
 <body>
 
-{# === 目录侧边栏 === #}
+{# === 侧边目录（桌面端常驻） === #}
 <button class="toc-toggle" id="toc-toggle" aria-label="目录">☰</button>
 <nav class="toc-sidebar" id="toc-sidebar">
     <div class="toc-header">
-        <span class="toc-header-title">目录</span>
-        <span class="toc-header-count">{{ total_items }}条</span>
+        <span class="toc-header-title">推流 · 内参</span>
+        <span class="toc-header-date">{{ date_str }}</span>
     </div>
-    <ul class="toc-list" id="toc-list">
-        <li class="toc-item toc-overview">
-            <a href="#overview" class="toc-link">今日概览</a>
-        </li>
+    <ul class="toc-list">
+        <li><a href="#cover" class="toc-link">封面故事</a></li>
         {% for section_id, config in sections_config.items() %}
         {% set items = sections.get(section_id, []) %}
-        <li class="toc-item toc-section">
-            <a href="#section-{{ section_id }}" class="toc-link toc-section-link" data-section="{{ section_id }}">
-                <span class="toc-accent" style="background:{{ config.color }}"></span>
-                <span class="toc-section-name">{{ config.name }}</span>
-                <span class="toc-section-num">{{ items|length }}</span>
-            </a>
-            {% if items|length > 0 %}
-            <ul class="toc-sub" id="toc-sub-{{ section_id }}">
-                {% for item in items %}
-                <li class="toc-sub-item">
-                    <a href="#item-{{ section_id }}-{{ loop.index0 }}" class="toc-sub-link" title="{{ item.title }}">
-                        {{ item.title[:30] }}{% if item.title|length > 30 %}…{% endif %}
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
-            {% endif %}
-        </li>
-        {% endfor %}
-        {% if allegory %}
-        <li class="toc-item toc-overview">
-            <a href="#allegory" class="toc-link">每日寓言</a>
-        </li>
+        {% if items|length > 0 %}
+        <li><a href="#sec-{{ section_id }}" class="toc-link toc-sec-link" data-sec="{{ section_id }}">
+            <span class="toc-accent" style="background:{{ config.color }}"></span>
+            <span>{{ config.name }}</span>
+            <span class="toc-num">{{ items|length }}</span>
+        </a></li>
         {% endif %}
+        {% endfor %}
     </ul>
 </nav>
 
-{# === 主内容区 === #}
-<main class="main-content" id="main-content">
+<main class="main-content">
 
-{# === 报头 === #}
-<header class="header">
-    <div class="header-masthead">推 流</div>
-    <div class="header-date">{{ date_str }} · {{ weekday }}</div>
-    <div class="header-subtitle">Daily Brief — 个人高价值资讯内参</div>
+{# ===== 报头 ===== #}
+<header class="masthead">
+    <div class="masthead-brand">推 流</div>
+    <div class="masthead-date">{{ date_str }} · {{ weekday }}</div>
+    <div class="masthead-sub">每日财经内参 · 个人高价值资讯早报</div>
 </header>
 
-{# === 信源状态条 === #}
-<div class="source-bar">
-    {% for name, status in source_status.items() %}
-        {% if status == 'ok' %}
-        <span class="source-tag ok"><span class="dot"></span>{{ name }}</span>
-        {% elif status == 'degraded' %}
-        <span class="source-tag warn"><span class="dot"></span>{{ name }}</span>
-        {% elif status == 'failed' %}
-        <span class="source-tag fail"><span class="dot"></span>{{ name }}</span>
-        {% endif %}
-    {% endfor %}
-</div>
-
-{# === 今日概览 === #}
-<div class="overview" id="overview">
-    <div class="overview-label">今日概览</div>
+{# ===== 今日概览（编辑导读） ===== #}
+{% if overview %}
+<div class="overview" id="cover">
+    <div class="overview-label">今日导读</div>
     <div class="overview-text">{{ overview }}</div>
 </div>
+{% endif %}
 
-{# === 各版块 === #}
+{# ===== 信源状态 ===== #}
+<div class="source-bar">
+    {% for name, status in source_status.items() %}
+    {% if status == 'ok' %}<span class="src-tag ok">{{ name }}</span>
+    {% elif status == 'failed' %}<span class="src-tag fail">{{ name }}</span>
+    {% endif %}
+    {% endfor %}
+    <span class="src-tag total">共 {{ total_items }} 条</span>
+</div>
+
+{# ===== 各版块 ===== #}
 {% for section_id, config in sections_config.items() %}
-    {% set items = sections.get(section_id, []) %}
-    <section class="section" id="section-{{ section_id }}">
-        <div class="section-header">
-            <div class="section-accent" style="background: {{ config.color }}"></div>
-            <h2 class="section-title">{{ config.name }}</h2>
-            <span class="section-count">{{ items|length }}条</span>
+{% set items = sections.get(section_id, []) %}
+{% if items|length > 0 %}
+<section class="sec" id="sec-{{ section_id }}">
+    <div class="sec-head">
+        <span class="sec-bar" style="background:{{ config.color }}"></span>
+        <h2 class="sec-title">{{ config.name }}</h2>
+        <span class="sec-count">{{ items|length }}条</span>
+    </div>
+
+    {% for item in items %}
+    <article class="card">
+        <h3 class="card-title">{{ item.title }}</h3>
+
+        <div class="card-meta">
+            <span class="card-source">{{ item.sources|join(' · ') }}</span>
+            {% if item.reliability == '多源验证' %}
+            <span class="card-verified">✓ 多源验证</span>
+            {% endif %}
+            {% if item.published %}
+            <span class="card-date">{{ item.published }}</span>
+            {% endif %}
+            {% if item.target_board %}
+            <span class="card-board">{{ item.target_board }}</span>
+            {% endif %}
+            {% if item.ipo_date %}
+            <span class="card-board">📅 {{ item.ipo_date }}</span>
+            {% endif %}
+            {% if item.ipo_price %}
+            <span class="card-board">💰 {{ item.ipo_price }}</span>
+            {% endif %}
+            {% if item.stock_code %}
+            <span class="card-board">🔢 {{ item.stock_code }}</span>
+            {% endif %}
         </div>
 
-        {% if items|length == 0 %}
-            <div class="empty-section">今日暂无该版块资讯</div>
+        <div class="card-body">
+            {% if item.content %}
+            <p>{{ item.content[:300] }}{% if item.content|length > 300 %}…{% endif %}</p>
+            {% endif %}
+        </div>
+
+        {% if item.ai_analysis %}
+        <div class="ai-box">
+            <div class="ai-label">AI 分析</div>
+            <div class="ai-cols">
+                <div class="ai-col">
+                    <span class="ai-tag">意义</span>
+                    <p>{{ item.ai_analysis.significance }}</p>
+                </div>
+                <div class="ai-col">
+                    <span class="ai-tag">机会</span>
+                    <p>{{ item.ai_analysis.opportunity }}</p>
+                </div>
+                <div class="ai-col">
+                    <span class="ai-tag">影响</span>
+                    <p>{{ item.ai_analysis.impact }}</p>
+                </div>
+            </div>
+        </div>
         {% endif %}
-
-        {% for item in items %}
-        <article class="item" id="item-{{ section_id }}-{{ loop.index0 }}">
-            <h3 class="item-title">{{ item.title }}</h3>
-            <div class="item-meta">
-                <span class="item-source">{{ item.sources|join(' · ') }}</span>
-                {% if item.reliability_icon %}
-                <span class="item-reliability
-                    {%- if item.reliability == '多源验证' -%}verified
-                    {%- elif item.reliability == '交叉验证' -%}partial
-                    {%- else -%}unverified{%- endif -%}">
-                    {{ item.reliability_icon }} {{ item.reliability }}
-                </span>
-                {% endif %}
-                {% if item.warning %}
-                <span style="color: var(--accent); font-size: 12px;">{{ item.warning }}</span>
-                {% endif %}
-            </div>
-            <div class="item-content">
-                {% if item.content %}
-                <p>{{ item.content }}</p>
-                {% endif %}
-                {% if item.description and item.description != item.content %}
-                <p>{{ item.description }}</p>
-                {% endif %}
-            </div>
-            {% if item.original_quote %}
-            <blockquote>{{ item.original_quote }}</blockquote>
-            {% endif %}
-
-            {# === AI 分析 === #}
-            {% if item.ai_analysis %}
-            <div class="ai-analysis">
-                <div class="ai-analysis-header">
-                    智能分析 <span class="ai-badge">AI</span>
-                </div>
-                <div class="ai-analysis-grid">
-                    <div class="ai-analysis-col">
-                        <div class="ai-analysis-label">● 背后意义</div>
-                        <div class="ai-analysis-text">{{ item.ai_analysis.significance }}</div>
-                    </div>
-                    <div class="ai-analysis-col">
-                        <div class="ai-analysis-label">● 产业链机会</div>
-                        <div class="ai-analysis-text">{{ item.ai_analysis.opportunity }}</div>
-                    </div>
-                    <div class="ai-analysis-col">
-                        <div class="ai-analysis-label">● 后续影响</div>
-                        <div class="ai-analysis-text">{{ item.ai_analysis.impact }}</div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </article>
-        {% endfor %}
-    </section>
+    </article>
+    {% endfor %}
+</section>
+{% endif %}
 {% endfor %}
 
-{# === 每日寓言 === #}
+{# ===== 每日寓言 ===== #}
 {% if allegory %}
-<section class="allegory" id="allegory">
-    <div class="section-header">
-        <div class="section-accent" style="background: var(--color-allegory)"></div>
-        <h2 class="section-title">每日寓言</h2>
+<section class="allegory">
+    <div class="sec-head">
+        <span class="sec-bar" style="background:#7D6608"></span>
+        <h2 class="sec-title">每日寓言</h2>
     </div>
-
     <div class="allegory-story">
-        {% for para in allegory.story_paragraphs %}
-        <p>{{ para }}</p>
-        {% endfor %}
+        {% for para in allegory.story_paragraphs %}<p>{{ para }}</p>{% endfor %}
     </div>
-
     <div class="allegory-divider">· · ·</div>
-
     <div class="allegory-reveal">
         <div class="allegory-concept">{{ allegory.concept }}</div>
-        <div class="allegory-explanation">
-            {% for para in allegory.explanation_paragraphs %}
-            <p>{{ para }}</p>
-            {% endfor %}
-        </div>
+        {% for para in allegory.explanation_paragraphs %}<p>{{ para }}</p>{% endfor %}
     </div>
 </section>
 {% endif %}
 
-{# === 底部信源状态 === #}
+{# ===== 页脚 ===== #}
 <footer class="footer">
-    <div class="footer-section">
-        <div class="footer-label">信源状态明细</div>
-        <ul class="source-status-list">
-            {% for name, status in source_status.items()|sort %}
-            <li>
-                {% if status == 'ok' %}✅
-                {% elif status == 'degraded' %}⚠️
-                {% elif status == 'failed' %}❌
-                {% elif status == 'no_update' %}📭
-                {% else %}❓{% endif %}
-                {{ name }}
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-    <div class="footer-section" style="margin-top: 16px; color: var(--text-secondary);">
-        生成时间：{{ generation_time }} · 推流 v1.1
-    </div>
+    <p>生成时间：{{ generation_time }} · 推流 v2.0</p>
+    <p>信源：36氪 · 量子位 · 财联社 · Federal Reserve</p>
 </footer>
 
 </main>
 
-{# === 目录交互脚本 === #}
+{# ===== 目录交互 ===== #}
 <script>
 (function(){
-    var sidebar = document.getElementById('toc-sidebar');
-    var toggle = document.getElementById('toc-toggle');
-    var tocLinks = sidebar.querySelectorAll('.toc-link');
-    var sectionLinks = sidebar.querySelectorAll('.toc-section-link');
-
-    // 移动端切换目录
-    toggle.addEventListener('click', function(){
-        sidebar.classList.toggle('open');
-    });
-
-    // 点击目录外区域收起（移动端）
+    var sb = document.getElementById('toc-sidebar');
+    var tb = document.getElementById('toc-toggle');
+    tb.onclick = function(){ sb.classList.toggle('open'); };
     document.addEventListener('click', function(e){
-        if (!sidebar.contains(e.target) && e.target !== toggle) {
-            sidebar.classList.remove('open');
-        }
+        if (!sb.contains(e.target) && e.target !== tb) sb.classList.remove('open');
     });
-
-    // 点击目录链接跳转并关闭（移动端）
-    tocLinks.forEach(function(link){
-        link.addEventListener('click', function(){
-            if (window.innerWidth < 1024) {
-                sidebar.classList.remove('open');
-            }
+    var seclinks = sb.querySelectorAll('.toc-sec-link');
+    function update(){
+        var sy = window.scrollY + 100;
+        var active = null;
+        seclinks.forEach(function(l){
+            var id = l.getAttribute('data-sec');
+            var el = document.getElementById('sec-'+id);
+            if (el && el.offsetTop <= sy) active = id;
         });
-    });
-
-    // 滚动时高亮当前版块
-    var sectionIds = [];
-    sectionLinks.forEach(function(link){
-        sectionIds.push(link.getAttribute('data-section'));
-    });
-
-    function updateActive(){
-        var scrollY = window.scrollY + 120;
-        var activeSection = null;
-
-        sectionIds.forEach(function(sid){
-            var el = document.getElementById('section-' + sid);
-            if (el && el.offsetTop <= scrollY) {
-                activeSection = sid;
-            }
+        seclinks.forEach(function(l){
+            l.classList.toggle('active', l.getAttribute('data-sec') === active);
         });
-
-        // 更新目录高亮
-        sectionLinks.forEach(function(link){
-            var parent = link.parentElement;
-            if (link.getAttribute('data-section') === activeSection) {
-                link.classList.add('active');
-                parent.classList.add('active');
-            } else {
-                link.classList.remove('active');
-                parent.classList.remove('active');
-            }
-        });
-
-        // 当前版块下的文章高亮
-        if (activeSection) {
-            var subItems = sidebar.querySelectorAll('#toc-sub-' + activeSection + ' .toc-sub-link');
-            subItems.forEach(function(sl){ sl.classList.remove('active-sub'); });
-            var itemEls = document.querySelectorAll('#section-' + activeSection + ' .item');
-            var found = false;
-            itemEls.forEach(function(itemEl){
-                if (!found && itemEl.offsetTop <= scrollY + 200) {
-                    var subLink = sidebar.querySelector('a[href="#' + itemEl.id + '"]');
-                    if (subLink) {
-                        subLink.classList.add('active-sub');
-                        found = true;
-                    }
-                }
-            });
-        }
     }
-
-    window.addEventListener('scroll', updateActive);
-    updateActive();
-
-    // 目录子项默认展开
-    var subLists = sidebar.querySelectorAll('.toc-sub');
-    subLists.forEach(function(sub){ sub.classList.add('expanded'); });
+    window.addEventListener('scroll', update);
+    update();
 })();
 </script>
 

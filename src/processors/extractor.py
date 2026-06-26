@@ -126,8 +126,8 @@ class KeyInfoExtractor:
 
         return item
 
-    def process_pre_ipo(self, item: Dict) -> Dict:
-        """处理准IPO类内容"""
+    def process_ipo(self, item: Dict) -> Dict:
+        """处理准IPO类内容（含打新信息）"""
         content = str(item.get('content', '') or item.get('description', ''))
         title = str(item.get('title', ''))
 
@@ -148,8 +148,29 @@ class KeyInfoExtractor:
         if sponsor:
             item['sponsor'] = sponsor.group(1)
 
+        # 打新信息提取
+        # 申购日期
+        ipo_date = re.search(r'(?:申购日期|发行日期|上市日期)[：:]\s*(\d{4}[-/年]\d{1,2}[-/月]\d{1,2}[日]?)', content + title)
+        if ipo_date:
+            item['ipo_date'] = ipo_date.group(1)
+
+        # 发行价
+        price = re.search(r'(?:发行价|发行价格)[：:]\s*([\d,.]+)\s*元', content + title)
+        if price:
+            item['ipo_price'] = price.group(1) + '元'
+
+        # 股票代码
+        code = re.search(r'(?:股票代码|证券代码)[：:]\s*(\d{6})', content + title)
+        if code:
+            item['stock_code'] = code.group(1)
+
+        # 申购上限
+        limit = re.search(r'(?:申购上限|网上申购上限)[：:]\s*([\d,.]+)\s*(万)?股', content)
+        if limit:
+            item['subscription_limit'] = f'{limit.group(1)}{limit.group(2) or ""}股'
+
         item['key_facts'] = self.extract_key_facts(content)
-        item['content_type'] = 'pre_ipo'
+        item['content_type'] = 'ipo'
 
         return item
 
@@ -161,16 +182,14 @@ class KeyInfoExtractor:
         """
         section = item.get('section', '')
 
-        if section == 'industry_policy' or section == 'financial_policy':
+        if section == 'policy':
             return self.process_policy(item)
-        elif section == 'financial_stats':
+        elif section == 'finance':
             return self.process_stats(item)
-        elif section == 'science_tech':
-            return self.process_science(item)
-        elif section == 'pre_ipo':
-            return self.process_pre_ipo(item)
+        elif section == 'ipo':
+            return self.process_ipo(item)
         else:
-            # hot_industries / supply_demand — 通用提取
+            # top_story / industry / global — 通用提取
             content = str(item.get('content', '') or item.get('description', ''))
             item['key_facts'] = self.extract_key_facts(content)
             item['content_type'] = 'general'

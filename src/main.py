@@ -15,7 +15,7 @@ from processors.pipeline import ProcessingPipeline
 from ai_generator import AIGenerator
 from deploy.deploy import ReportDeployer
 from ai_backfill import extract_analysis_jobs, save_jobs, create_filled_template
-from collectors.collector import RSSCollector, fetch_arxiv, fetch_cls_telegraph
+from collectors.collector import RSSCollector, fetch_cls_telegraph
 
 # 项目根目录
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -32,15 +32,14 @@ jinja_env = Environment(
     autoescape=select_autoescape(['html']),
 )
 
-# 版块配置
+# 版块配置（v2.0）
 SECTIONS_CONFIG = {
-    'hot_industries':    {'name': '一、市场最热门行业',    'color': '#C41E3A'},
-    'supply_demand':     {'name': '二、供需关系变化',      'color': '#B7950B'},
-    'science_tech':      {'name': '三、前沿科学与技术突破',  'color': '#1E8449'},
-    'industry_policy':   {'name': '四、行业政策变动',      'color': '#6C3483'},
-    'financial_policy':  {'name': '五、金融政策变动',      'color': '#1A5276'},
-    'financial_stats':   {'name': '六、金融统计数据变动',   'color': '#1A5276'},
-    'pre_ipo':           {'name': '七、准IPO企业追踪',     'color': '#D35400'},
+    'top_story':    {'name': '今日焦点',          'color': '#C41E3A'},
+    'policy':       {'name': '政策风向',          'color': '#6C3483'},
+    'finance':      {'name': '金融脉搏',          'color': '#1A5276'},
+    'industry':     {'name': '产业前沿',          'color': '#B7950B'},
+    'global':       {'name': '全球视野',          'color': '#1E8449'},
+    'ipo':          {'name': '准IPO & 打新',      'color': '#D35400'},
 }
 
 
@@ -66,15 +65,9 @@ def collect_raw_data(config: dict) -> tuple:
     all_items.extend(rss_items)
     source_status.update(rss.get_status())
 
-    # 2. arXiv论文
-    print('  [采集] arXiv...')
-    arxiv_items = fetch_arxiv(max_results=5)
-    all_items.extend(arxiv_items)
-    source_status['arXiv'] = 'ok' if arxiv_items else 'failed'
-
-    # 3. 财联社电报
+    # 2. 财联社电报（主源，中文财经快讯）
     print('  [采集] 财联社电报...')
-    cls_items = fetch_cls_telegraph(max_items=20)
+    cls_items = fetch_cls_telegraph(max_items=50)
     all_items.extend(cls_items)
     source_status['财联社'] = 'ok' if cls_items else 'failed'
 
