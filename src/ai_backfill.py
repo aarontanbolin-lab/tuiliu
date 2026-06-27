@@ -3,7 +3,7 @@
 推流 — AI内容回填
 在自动化中，由WorkBuddy AI读取分析任务，生成真实分析内容后回填到报告中。
 """
-import json, os, sys
+import json, os, sys, hashlib
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -30,17 +30,21 @@ jinja_env = Environment(
 def extract_analysis_jobs(sections: dict) -> list:
     """
     从版块数据中提取需要AI分析的条目，生成分析任务列表。
-    返回可用于JSON序列化的任务列表。
+    每条带唯一 item_id（标题+版块MD5），用于回填时精确匹配，杜绝错配。
     """
     jobs = []
     for section_id, items in sections.items():
         for idx, item in enumerate(items):
+            # 生成唯一ID：标题+版块ID的MD5前8位
+            raw = (item.get('title', '') + section_id).encode('utf-8')
+            item_id = hashlib.md5(raw).hexdigest()[:8]
             job = {
+                'item_id': item_id,
                 'section_id': section_id,
                 'section_name': SECTIONS_CONFIG.get(section_id, {}).get('name', section_id),
                 'item_index': idx,
                 'title': item.get('title', ''),
-                'content': item.get('content', '')[:500],  # 截取前500字供AI分析
+                'content': item.get('content', '')[:500],
                 'source': item.get('source', ''),
                 'sources': item.get('sources', []),
                 'content_type': item.get('content_type', 'general'),
@@ -79,27 +83,51 @@ def load_filled_jobs(path: str = None) -> list:
 
 def apply_analysis(sections: dict, filled_jobs: list) -> dict:
     """
-    将AI生成的真实分析应用到版块数据中，替换占位符。
+    将AI生成的真实分析应用到版块数据中。
+    用 item_id（标题MD5）精确匹配，杜绝位置错配。
     """
+    # 先构建 sections 中每条目的 item_id 索引
+    index = {}
+    for section_id, items in sections.items():
+        for item in items:
+            raw = (item.get('title', '') + section_id).encode('utf-8')
+            item_id = hashlib.md5(raw).hexdigest()[:8]
+            index[(section_id, item_id)] = item
+
+    # 用 item_id 匹配回填
+    matched = 0
     for job in filled_jobs:
         section_id = job['section_id']
-        idx = job['item_index']
-
-        if section_id in sections and idx < len(sections[section_id]):
-            item = sections[section_id][idx]
-
-            # 替换AI分析
+        item_id = job.get('item_id', '')
+        key = (section_id, item_id)
+        if key in index:
+            item = index[key]
             significance = job.get('ai_significance', '')
             opportunity = job.get('ai_opportunity', '')
             impact = job.get('ai_impact', '')
-
-            # 只有非占位符内容才替换
             if significance and not significance.startswith('[AI分析]'):
                 item['ai_analysis'] = {
                     'significance': significance,
                     'opportunity': opportunity,
                     'impact': impact,
                 }
+                matched += 1
+        else:
+            # 兼容旧格式：用 item_index 兜底
+            idx = job.get('item_index', -1)
+            if section_id in sections and 0 <= idx < len(sections[section_id]):
+                item = sections[section_id][idx]
+                if item.get('title') == job.get('title', ''):
+                    significance = job.get('ai_significance', '')
+                    if significance and not significance.startswith('[AI分析]'):
+                        item['ai_analysis'] = {
+                            'significance': significance,
+                            'opportunity': job.get('ai_opportunity', ''),
+                            'impact': job.get('ai_impact', ''),
+                        }
+                        matched += 1
+
+    print(f'[AI] 回填匹配: {matched}/{len(filled_jobs)} 条')
     return sections
 
 
