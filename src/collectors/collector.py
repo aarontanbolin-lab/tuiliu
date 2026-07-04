@@ -196,6 +196,75 @@ def fetch_cls_telegraph(max_items: int = 30) -> List[Dict]:
 
 
 # =============================================================================
+# API采集器：新闻联播（RSSHub）
+# =============================================================================
+def fetch_xwlb() -> List[Dict]:
+    """
+    采集昨日新闻联播文字稿，拆分为单条新闻。
+    来源：RSSHub CCTV 新闻联播路由。
+    """
+    import re
+    from datetime import datetime, timedelta
+
+    try:
+        url = 'https://rsshub.rssforever.com/cctv/xwlb'
+        r = httpx.get(url, timeout=20, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        feed = feedparser.parse(r.text)
+
+        # 找到昨天的条目
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y/%m/%d')
+        target_entry = None
+        for entry in feed.entries:
+            title = entry.get('title', '')
+            if yesterday in title:
+                target_entry = entry
+                break
+
+        if not target_entry:
+            print(f'  [联播] 未找到昨日({yesterday})内容')
+            return []
+
+        # 解析摘要，提取每条新闻
+        summary = target_entry.get('summary', '') or target_entry.get('description', '')
+        summary = html.unescape(summary)
+        # 去除HTML标签
+        text = re.sub(r'<[^>]+>', '\n', summary)
+        text = re.sub(r'\n{3,}', '\n\n', text).strip()
+
+        # 按 [视频] 标记拆分
+        segments = re.split(r'\n(?=\[视频\])', text)
+        items = []
+        for seg in segments:
+            seg = seg.strip()
+            if not seg or seg.startswith('《新闻联播》'):
+                continue
+            # 去除时长标记 ⏱00:02:05
+            seg_clean = re.sub(r'\s*⏱[\d:]+', '', seg)
+            # 提取标题（第一行）
+            lines = seg_clean.strip().split('\n', 1)
+            title = lines[0].replace('[视频]', '').strip()
+            content = lines[1].strip() if len(lines) > 1 else title
+            if len(title) > 5:  # 过滤太短的
+                items.append({
+                    'title': title[:150],
+                    'content': content[:1000],
+                    'source': '新闻联播',
+                    'category': 'xwlb',
+                    'published': yesterday.replace('/', '-'),
+                    'url': target_entry.get('link', ''),
+                })
+
+        print(f'  [联播] {yesterday}: {len(items)} 条')
+        return items
+
+    except Exception as e:
+        print(f'  [联播] 失败: {e}')
+        return []
+
+
+# =============================================================================
 # 测试
 # =============================================================================
 if __name__ == '__main__':

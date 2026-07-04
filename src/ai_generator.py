@@ -188,7 +188,7 @@ class AIGenerator:
         section_names = {
             'top_story': '今日焦点', 'policy': '政策风向',
             'finance': '金融脉搏', 'industry': '产业前沿',
-            'global': '全球视野', 'ipo': '准IPO',
+            'global': '全球视野', 'ipo': '准IPO', 'xwlb': '昨日联播',
         }
         for section_id, items in sections.items():
             if items:

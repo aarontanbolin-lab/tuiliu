@@ -19,6 +19,7 @@ SECTIONS_CONFIG = {
     'industry':     {'name': '产业前沿',          'color': '#B7950B'},
     'global':       {'name': '全球视野',          'color': '#1E8449'},
     'ipo':          {'name': '准IPO & 打新',      'color': '#D35400'},
+    'xwlb':         {'name': '昨日联播',          'color': '#B71C1C'},
 }
 
 jinja_env = Environment(

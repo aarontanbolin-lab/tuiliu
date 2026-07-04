@@ -16,7 +16,7 @@ from processors.editor import rank_sections, count_featured
 from ai_generator import AIGenerator
 from deploy.deploy import ReportDeployer
 from ai_backfill import extract_analysis_jobs, save_jobs, create_filled_template
-from collectors.collector import RSSCollector, fetch_cls_telegraph
+from collectors.collector import RSSCollector, fetch_cls_telegraph, fetch_xwlb
 
 # 项目根目录
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -41,6 +41,7 @@ SECTIONS_CONFIG = {
     'industry':     {'name': '产业前沿',          'color': '#B7950B'},
     'global':       {'name': '全球视野',          'color': '#1E8449'},
     'ipo':          {'name': '准IPO & 打新',      'color': '#D35400'},
+    'xwlb':         {'name': '昨日联播',          'color': '#B71C1C'},
 }
 
 
@@ -71,6 +72,12 @@ def collect_raw_data(config: dict) -> tuple:
     cls_items = fetch_cls_telegraph(max_items=50)
     all_items.extend(cls_items)
     source_status['财联社'] = 'ok' if cls_items else 'failed'
+
+    # 3. 新闻联播（昨日）
+    print('  [采集] 新闻联播...')
+    xwlb_items = fetch_xwlb()
+    all_items.extend(xwlb_items)
+    source_status['新闻联播'] = 'ok' if xwlb_items else 'failed'
 
     print(f'  [采集] 共计 {len(all_items)} 条原始条目')
     return all_items, source_status

@@ -34,6 +34,10 @@ SECTIONS = {
         "name": "准IPO & 打新",
         "priority": 6,
     },
+    "xwlb": {
+        "name": "昨日联播",
+        "priority": 7,
+    },
 }
 
 
@@ -126,6 +130,11 @@ KEYWORD_RULES: Dict[str, List[Tuple[str, float]]] = {
         # 企业相关
         ("保荐", 2.0), ("募集资金", 2.0), ("融资额", 2.0),
     ],
+    "xwlb": [
+        # 新闻联播独有信号
+        ("新闻联播", 5.0), ("习近平", 4.0), ("李强", 3.0),
+        ("中央军委", 3.0), ("国务院", 2.0), ("政治局", 3.0),
+    ],
 }
 
 
@@ -144,6 +153,7 @@ SOURCE_SECTION_HINT: Dict[str, str] = {
     "证监会": "ipo",
     "上海期货交易所": "finance",
     "海关总署": "finance",
+    "新闻联播": "xwlb",
 }
 
 
